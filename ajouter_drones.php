@@ -1,110 +1,165 @@
 <?php
-// Définition des informations de connexion
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Connexion à la base de données
 $host = "localhost";
-$dbname = "API";
-$username = "root";
+$user = "root";
 $password = "root";
+$dbname = "API";
 
-// Création d'une instance PDO
-try {
-  $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
-  $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-  echo "Erreur de connexion à la base de données : " . $e->getMessage();
-  die();
+$connexion = mysqli_connect($host, $user, $password, $dbname);
+
+// Vérifier la connexion
+if (!$connexion) {
+    die("Échec de la connexion : " . mysqli_connect_error());
 }
 
-// Récupération des données du formulaire
-$nomDrone = $_POST["nom_drone"];
-$description = $_POST["description"];
-$latitude = $_POST["latitude"];
-$longitude = $_POST["longitude"];
-$altitude = $_POST["altitude"];
+// Si la méthode de requête est POST, traiter les données JSON du formulaire
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Récupérer les données JSON envoyées via POST
+    $data = file_get_contents('php://input');
+    $drone = json_decode($data, true);
 
-// Définition de la date de création
-$dateCreation = date("Y-m-d H:i:s");
+    // Vérifier si les données JSON ont été correctement décodées
+    if (!$drone) {
+        die("Données JSON invalides.");
+    }
 
-// **Vérification de l'existence du drone**
-$sql_check_drone = "SELECT COUNT(*) FROM Drones WHERE nom = :nom";
+    // Extraire les valeurs des champs du formulaire
+    $nomDrone = isset($drone["nom_drone"]) ? $drone["nom_drone"] : null;
+    $description = isset($drone["description"]) ? $drone["description"] : null;
+    $latitude = isset($drone["latitude"]) ? $drone["latitude"] : null;
+    $longitude = isset($drone["longitude"]) ? $drone["longitude"] : null;
+    $altitude = isset($drone["altitude"]) ? $drone["altitude"] : null;
 
-// Préparation de la requête
-$stmt_check_drone = $pdo->prepare($sql_check_drone);
+    // Préparer la requête d'insertion SQL pour la table Drones
+    $sqlDrones = "INSERT INTO Drones (nom, description) VALUES (?, ?)";
+    $stmtDrones = mysqli_prepare($connexion, $sqlDrones); 
 
-// Liaison du paramètre
-$stmt_check_drone->bindParam(":nom", $nomDrone);
+    // Vérifier la préparation de la requête
+    if ($stmtDrones) {
+        // Liaison des paramètres
+        mysqli_stmt_bind_param($stmtDrones, "ss", $nomDrone, $description);
+        
+        // Exécuter la requête
+        if (mysqli_stmt_execute($stmtDrones)) {
+            // Récupérer l'ID du drone inséré
+            $droneId = mysqli_insert_id($connexion);
 
-// Exécution de la requête
-$stmt_check_drone->execute();
+            // Préparer la requête d'insertion SQL pour la table Positions
+            $sqlPositions = "INSERT INTO Positions (drone_id, latitude, longitude, altitude) VALUES (?, ?, ?, ?)";
+            $stmtPositions = mysqli_prepare($connexion, $sqlPositions);
 
-// Récupération du nombre de drones trouvés
-$nb_drones = $stmt_check_drone->fetchColumn(0);
+            // Vérifier la préparation de la requête
+            if ($stmtPositions) {
+                // Liaison des paramètres
+                mysqli_stmt_bind_param($stmtPositions, "iddd", $droneId, $latitude, $longitude, $altitude);
+                
+                // Exécuter la requête
+                if (mysqli_stmt_execute($stmtPositions)) {
+                    // Insertion réussie
+                    echo json_encode(["message" => "Drone ajouté avec succès !"]);
+                } else {
+                    // Échec de l'insertion
+                    echo json_encode(["message" => "Échec de l'ajout du drone : " . mysqli_error($connexion)]);
+                }
 
-// Fermeture du curseur
-$stmt_check_drone->closeCursor();
+                // Fermer la déclaration
+                mysqli_stmt_close($stmtPositions);
+            } else {
+                // Échec de la préparation de la requête
+                echo json_encode(["message" => "Échec de la préparation de la requête : " . mysqli_error($connexion)]);
+            }
+        } else {
+            // Échec de l'insertion
+            echo json_encode(["message" => "Échec de l'ajout du drone : " . mysqli_error($connexion)]);
+        }
 
-if ($nb_drones == 0) {
-  // **Ajout du drone**
-  $sql_insert_drone = "INSERT INTO Drones (nom, description, date_creation) VALUES (:nom, :description, :dateCreation)";
-
-  // Préparation de la requête
-  $stmt_insert_drone = $pdo->prepare($sql_insert_drone);
-
-  // Liaison des paramètres
-  $stmt_insert_drone->bindParam(":nom", $nomDrone);
-  $stmt_insert_drone->bindParam(":description", $description);
-  $stmt_insert_drone->bindParam(":dateCreation", $dateCreation);
-
-  // Exécution de la requête
-  $stmt_insert_drone->execute();
-
-  // Récupération de l'identifiant du drone inséré
-  $drone_id = $pdo->lastInsertId();
-
-  // Fermeture du curseur
-  $stmt_insert_drone->closeCursor();
+        // Fermer la déclaration
+        mysqli_stmt_close($stmtDrones);
+    } else {
+        // Échec de la préparation de la requête
+        echo json_encode(["message" => "Échec de la préparation de la requête : " . mysqli_error($connexion)]);
+    }
 } else {
-  // Le drone existe déjà, on récupère son identifiant
-  $sql_get_drone_id = "SELECT id FROM Drones WHERE nom = :nom";
+    // Si la méthode de requête est GET, afficher le formulaire HTML
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ajouter un drone</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEAg3QhqLMpG8r+Knujsl7/1L_dstPt3vvmD3hptI8LUk4W77lW7J/Xlx3m0z" crossorigin="anonymous">
+    <link rel="stylesheet" href="ajt.css">
 
-  // Préparation de la requête
-  $stmt_get_drone_id = $pdo->prepare($sql_get_drone_id);
+  </head>
+<body>
+<div class="container">
+    <h1>Ajouter un drone</h1>
+    <form id="ajouterDroneForm">
+        <div class="mb-3">
+            <label for="nom_drone" class="form-label">Nom du drone</label>
+            <input type="text" class="form-control" id="nom_drone" name="nom_drone" required>
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="latitude" class="form-label">Latitude</label>
+            <input type="number" step="0.00001" class="form-control" id="latitude" name="latitude">
+        </div>
+        <div class="mb-3">
+            <label for="longitude" class="form-label">Longitude</label>
+            <input type="number" step="0.00001" class="form-control" id="longitude" name="longitude">
+        </div>
+        <div class="mb-3">
+            <label for="altitude" class="form-label">Altitude</label>
+            <input type="number" step="0.01" class="form-control" id="altitude" name="altitude">
+        </div>
+        <button type="submit" class="btn btn-primary">Ajouter</button>
+        <button type="button" class="btn btn-second" onclick="window.location.href='drone.php';">Retour</button>
 
-  // Liaison du paramètre
-  $stmt_get_drone_id->bindParam(":nom", $nomDrone);
+      </form>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz4fnFO9gybB5IXNxFwWQfE7u8Lj+XJHAxKlXiG/6KQ5Jk7qD1wg6OjU6C" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js" integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/" crossorigin="anonymous"></script>
+<script>
+    document.getElementById('ajouterDroneForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Empêcher la soumission du formulaire par défaut
 
-  // Exécution de la requête
-  $stmt_get_drone_id->execute();
+        // Créer un objet avec les données du formulaire
+        var droneData = {
+            "nom_drone": document.getElementById('nom_drone').value,
+            "description": document.getElementById('description').value,
+            "latitude": parseFloat(document.getElementById('latitude').value),
+            "longitude": parseFloat(document.getElementById('longitude').value),
+            "altitude": parseFloat(document.getElementById('altitude').value)
+        };
 
-  // Récupération de l'identifiant du drone
-  $drone_id = $stmt_get_drone_id->fetchColumn(0);
-
-  // Fermeture du curseur
-  $stmt_get_drone_id->closeCursor();
+        // Envoyer les données JSON via une requête POST
+        fetch('ajouter_drones.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(droneData),
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Réponse du serveur :', data);
+            // Ajoutez ici le code pour gérer la réponse du serveur, par exemple afficher un message à l'utilisateur
+        })
+        .catch((error) => {
+            console.error('Erreur lors de la requête :', error);
+            // Ajoutez ici le code pour gérer les erreurs de requête, par exemple afficher un message d'erreur à l'utilisateur
+        });
+    });
+</script>
+</body>
+</html>
+<?php
 }
-
-// **Ajout de la position du drone**
-$sql_insert_position = "INSERT INTO Positions (drone_id, latitude, longitude, altitude, date_creation) VALUES (:drone_id, :latitude, :longitude, :altitude, :dateCreation)";
-
-// Préparation de la requête
-$stmt_insert_position = $pdo->prepare($sql_insert_position);
-
-// Liaison des paramètres
-$stmt_insert_position->bindParam(":drone_id", $drone_id);
-$stmt_insert_position->bindParam(":latitude", $latitude);
-$stmt_insert_position->bindParam(":longitude", $longitude);
-$stmt_insert_position->bindParam(":altitude", $altitude);
-$stmt_insert_position->bindParam(":dateCreation", $dateCreation);
-
-// Exécution de la requête
-$stmt_insert_position->execute();
-
-// Fermeture du curseur
-$stmt_insert_position->closeCursor();
-
-// Fermeture de la connexion à la base de données
-$pdo = null;
-
-// Redirection vers la page d'affichage des drones
-header("Location: afficher_drones.php");
-
 ?>

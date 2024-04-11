@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Ajouter un drone</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEAg3QhqLMpG8r+Knujsl7/1L_dstPt3vvmD3hptI8LUk4W77lW7J/Xlx3m0z" crossorigin="anonymous">
+</head>
+<body>
+  <div class="container">
+    <h1>Ajouter un drone</h1>
+    <form action="ajouter_drones.php" method="post">
+      <div class="mb-3">
+        <label for="nom_drone" class="form-label">Nom du drone</label>
+        <input type="text" class="form-control" id="nom_drone" name="nom_drone" required>
+      </div>
+      <div class="mb-3">
+        <label for="description" class="form-label">Description</label>
+        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+      </div>
+      <div class="mb-3">
+        <label for="latitude" class="form-label">Latitude</label>
+        <input type="number" step="0.00001" class="form-control" id="latitude" name="latitude">
+      </div>
+      <div class="mb-3">
+        <label for="longitude" class="form-label">Longitude</label>
+        <input type="number" step="0.00001" class="form-control" id="longitude" name="longitude">
+      </div>
+      <div class="mb-3">
+        <label for="altitude" class="form-label">Altitude</label>
+        <input type="number" step="0.01" class="form-control" id="altitude" name="altitude">
+      </div>
+      <button type="submit" class="btn btn-primary">Ajouter</button>
+    </form>
+  </div>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz4fnFO9gybB5IXNxFwWQfE7u8Lj+XJHAxKlXiG/6KQ5Jk7qD1wg6OjU6C" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js" integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/" crossorigin="anonymous"></script>
+</body>
+</html>
