@@ -4,7 +4,7 @@
 
 ## Description
 
-Mon super projet est une application web révolutionnaire qui permet de faire des choses incroyables en un temps record. Elle utilise les dernières technologies et est conçue pour être facile à utiliser et à personnaliser.
+Le but de ce projet est d'ajouter des positions à des drones et de pouvoir les exporter en json ou bien d'ajouter les données via des requetes POSTMAN. Le projet à été développé par SINGLAN Yohann et Kerryann
 
 ## GOD
 
@@ -14,41 +14,35 @@ Mon super projet est une application web révolutionnaire qui permet de faire de
 
 ## Équipe de développement
 
-* [Développeur 1](https://github.com/developpeur1) - Couleur préférée : <span style="color:red">rouge</span>
-* [Développeur 2](https://github.com/developpeur2) - Couleur préférée : <span style="color:green">vert</span>
-* [Développeur 3](https://github.com/developpeur3) - Couleur préférée : <span style="color:blue">bleu</span>
+* [Développeur 1](https://github.com/xhit0ra) - Couleur préférée : <span style="color:red">rouge</span>
 
 ## Fonctionnalités
 
-- [x] Fonctionnalité 1
-- [x] Fonctionnalité 2
-- [x] Fonctionnalité 3
-- [ ] Fonctionnalité 4 (à venir)
+- [x] Affichage drones
+- [x] Export JSON
+- [x] Ajout graphiques
+- [x] Requete POSTMAN
+- [x] Suppression positions 
+- [x] Login ( admin / Peter )
+- [ ] Map position ( à venir )
 
 ## Installation
 
-Pour installer Mon super projet sur votre ordinateur, suivez ces étapes simples :
+Pour installer le GOD sur votre ordinateur, suivez ces étapes simples :
 
 1. Clonez le dépôt GitHub :
 ```bash
-git clone https://github.com/votre-nom-utilisateur/mon-super-projet.git
+git clone https://github.com/KerryannPHS/GOD.git
 ```
 2. Accédez au répertoire du projet :
 ```bash
-cd mon-super-projet
+cd GOD
 ```
-3. Installez les dépendances :
-```
-pip install -r requirements.txt
-```
-4. Lancez l'application :
-```lua
-python app.py
-```
-5. Accédez à l'application dans votre navigateur à l'adresse suivante : <http://localhost:5000>
 
-> **Note :** Assurez-vous d'avoir installé Python et pip sur votre ordinateur avant de procéder à l'installation.
+5. Accédez à l'application dans votre navigateur à l'adresse suivante : <http://localhost:index.php>
 
+> **Note :** Assurez-vous d'avoir installé MariaDB, Apache2 et phpfpm8.2 sur votre ordinateur avant de procéder à l'installation.
+ 
 ## Utilisation
 
 Pour utiliser Mon super projet, suivez ces instructions simples :
@@ -57,7 +51,6 @@ Pour utiliser Mon super projet, suivez ces instructions simples :
 2. Accédez à la page d'accueil et sélectionnez l'option souhaitée.
 3. Suivez les instructions à l'écran pour effectuer l'action souhaitée.
 
-> **Astuce :** Pour personnaliser l'application, consultez le fichier `config.ini`.
 
 ## Contribution
 
