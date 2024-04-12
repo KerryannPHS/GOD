@@ -16,150 +16,125 @@ if (!$connexion) {
     die("Échec de la connexion : " . mysqli_connect_error());
 }
 
-// Si la méthode de requête est POST, traiter les données JSON du formulaire
+// Récupérer tous les drones existants pour les afficher dans le formulaire
+$sql = "SELECT id, nom FROM Drones";
+$result = mysqli_query($connexion, $sql);
+$drones = mysqli_fetch_all($result, MYSQLI_ASSOC);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Récupérer les données JSON envoyées via POST
-    $data = file_get_contents('php://input');
-    $drone = json_decode($data, true);
+    $data = json_decode(file_get_contents('php://input'), true);
+    // Vérifie si l'utilisateur souhaite ajouter un nouveau drone ou mettre à jour un existant
+    if ($data['drone_existant'] === "nouveau") {
+        // Ajouter un nouveau drone
+        $nomDrone = $data['nom_drone'];
+        $description = $data['description'];
+        $latitude = $data['latitude'];
+        $longitude = $data['longitude'];
+        $altitude = $data['altitude'];
 
-    // Vérifier si les données JSON ont été correctement décodées
-    if (!$drone) {
-        die("Données JSON invalides.");
-    }
+        $sql = "INSERT INTO Drones (nom, description) VALUES (?, ?)";
+        $stmt = mysqli_prepare($connexion, $sql);
+        mysqli_stmt_bind_param($stmt, "ss", $nomDrone, $description);
+        mysqli_stmt_execute($stmt);
+        $droneId = mysqli_insert_id($connexion);
 
-    // Extraire les valeurs des champs du formulaire
-    $nomDrone = isset($drone["nom_drone"]) ? $drone["nom_drone"] : null;
-    $description = isset($drone["description"]) ? $drone["description"] : null;
-    $latitude = isset($drone["latitude"]) ? $drone["latitude"] : null;
-    $longitude = isset($drone["longitude"]) ? $drone["longitude"] : null;
-    $altitude = isset($drone["altitude"]) ? $drone["altitude"] : null;
-
-    // Préparer la requête d'insertion SQL pour la table Drones
-    $sqlDrones = "INSERT INTO Drones (nom, description) VALUES (?, ?)";
-    $stmtDrones = mysqli_prepare($connexion, $sqlDrones); 
-
-    // Vérifier la préparation de la requête
-    if ($stmtDrones) {
-        // Liaison des paramètres
-        mysqli_stmt_bind_param($stmtDrones, "ss", $nomDrone, $description);
-        
-        // Exécuter la requête
-        if (mysqli_stmt_execute($stmtDrones)) {
-            // Récupérer l'ID du drone inséré
-            $droneId = mysqli_insert_id($connexion);
-
-            // Préparer la requête d'insertion SQL pour la table Positions
-            $sqlPositions = "INSERT INTO Positions (drone_id, latitude, longitude, altitude) VALUES (?, ?, ?, ?)";
-            $stmtPositions = mysqli_prepare($connexion, $sqlPositions);
-
-            // Vérifier la préparation de la requête
-            if ($stmtPositions) {
-                // Liaison des paramètres
-                mysqli_stmt_bind_param($stmtPositions, "iddd", $droneId, $latitude, $longitude, $altitude);
-                
-                // Exécuter la requête
-                if (mysqli_stmt_execute($stmtPositions)) {
-                    // Insertion réussie
-                    echo json_encode(["message" => "Drone ajouté avec succès !"]);
-                } else {
-                    // Échec de l'insertion
-                    echo json_encode(["message" => "Échec de l'ajout du drone : " . mysqli_error($connexion)]);
-                }
-
-                // Fermer la déclaration
-                mysqli_stmt_close($stmtPositions);
-            } else {
-                // Échec de la préparation de la requête
-                echo json_encode(["message" => "Échec de la préparation de la requête : " . mysqli_error($connexion)]);
-            }
-        } else {
-            // Échec de l'insertion
-            echo json_encode(["message" => "Échec de l'ajout du drone : " . mysqli_error($connexion)]);
-        }
-
-        // Fermer la déclaration
-        mysqli_stmt_close($stmtDrones);
     } else {
-        // Échec de la préparation de la requête
-        echo json_encode(["message" => "Échec de la préparation de la requête : " . mysqli_error($connexion)]);
+        // Utiliser l'ID du drone existant
+        $droneId = $data['drone_existant'];
     }
-} else {
-    // Si la méthode de requête est GET, afficher le formulaire HTML
+
+    // Ajouter les coordonnées pour le drone
+    $latitude = $data['latitude'];
+    $longitude = $data['longitude'];
+    $altitude = $data['altitude'];
+    $sql = "INSERT INTO Positions (drone_id, latitude, longitude, altitude) VALUES (?, ?, ?, ?)";
+    $stmt = mysqli_prepare($connexion, $sql);
+    mysqli_stmt_bind_param($stmt, "iddd", $droneId, $latitude, $longitude, $altitude);
+    $success = mysqli_stmt_execute($stmt);
+
+    if ($success) {
+        echo json_encode(["message" => "Succès"]);
+    } else {
+        echo json_encode(["message" => "Erreur lors de l'ajout des données"]);
+    }
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Ajouter un drone</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEAg3QhqLMpG8r+Knujsl7/1L_dstPt3vvmD3hptI8LUk4W77lW7J/Xlx3m0z" crossorigin="anonymous">
-    <link rel="stylesheet" href="ajt.css">
-
-  </head>
+    <title>Ajouter un drone ou des coordonnées</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+</head>
 <body>
 <div class="container">
-    <h1>Ajouter un drone</h1>
-    <form id="ajouterDroneForm">
-        <div class="mb-3">
-            <label for="nom_drone" class="form-label">Nom du drone</label>
-            <input type="text" class="form-control" id="nom_drone" name="nom_drone" required>
+    <h2>Ajouter un drone ou des coordonnées</h2>
+    <form id="droneForm">
+        <div class="form-group">
+            <label for="drone_existant">Sélectionner un drone existant ou nouveau</label>
+            <select class="form-control" id="drone_existant" name="drone_existant">
+                <option value="nouveau">Nouveau drone</option>
+                <?php foreach ($drones as $drone): ?>
+                    <option value="<?= $drone['id']; ?>"><?= $drone['nom']; ?></option>
+                <?php endforeach; ?>
+            </select>
         </div>
-        <div class="mb-3">
-            <label for="description" class="form-label">Description</label>
-            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+        <div class="form-group">
+            <label for="nom_drone">Nom du drone</label>
+            <input type="text" class="form-control" id="nom_drone" name="nom_drone">
         </div>
-        <div class="mb-3">
-            <label for="latitude" class="form-label">Latitude</label>
-            <input type="number" step="0.00001" class="form-control" id="latitude" name="latitude">
+        <div class="form-group">
+            <label for="description">Description</label>
+            <input type="text" class="form-control" id="description" name="description">
         </div>
-        <div class="mb-3">
-            <label for="longitude" class="form-label">Longitude</label>
-            <input type="number" step="0.00001" class="form-control" id="longitude" name="longitude">
+        <div class="form-group">
+            <label for="latitude">Latitude</label>
+            <input type="number" step="any" class="form-control" id="latitude" name="latitude" required>
         </div>
-        <div class="mb-3">
-            <label for="altitude" class="form-label">Altitude</label>
-            <input type="number" step="0.01" class="form-control" id="altitude" name="altitude">
+        <div class="form-group">
+            <label for="longitude">Longitude</label>
+            <input type="number" step="any" class="form-control" id="longitude" name="longitude" required>
         </div>
-        <button type="submit" class="btn btn-primary">Ajouter</button>
-        <button type="button" class="btn btn-second" onclick="window.location.href='drone.php';">Retour</button>
+        <div class="form-group">
+            <label for="altitude">Altitude</label>
+            <input type="number" step="any" class="form-control" id="altitude" name="altitude" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Soumettre</button>
+        <button type="button" class="btn btn-secondary" onclick="window.location.href='drone.php';">Retour</button>
 
-      </form>
+    </form>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz4fnFO9gybB5IXNxFwWQfE7u8Lj+XJHAxKlXiG/6KQ5Jk7qD1wg6OjU6C" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js" integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 <script>
-    document.getElementById('ajouterDroneForm').addEventListener('submit', function(event) {
-        event.preventDefault(); // Empêcher la soumission du formulaire par défaut
-
-        // Créer un objet avec les données du formulaire
-        var droneData = {
-            "nom_drone": document.getElementById('nom_drone').value,
-            "description": document.getElementById('description').value,
-            "latitude": parseFloat(document.getElementById('latitude').value),
-            "longitude": parseFloat(document.getElementById('longitude').value),
-            "altitude": parseFloat(document.getElementById('altitude').value)
-        };
-
-        // Envoyer les données JSON via une requête POST
-        fetch('ajouter_drones.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(droneData),
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Réponse du serveur :', data);
-            // Ajoutez ici le code pour gérer la réponse du serveur, par exemple afficher un message à l'utilisateur
-        })
-        .catch((error) => {
-            console.error('Erreur lors de la requête :', error);
-            // Ajoutez ici le code pour gérer les erreurs de requête, par exemple afficher un message d'erreur à l'utilisateur
+    $(document).ready(function() {
+        $('#droneForm').on('submit', function(e) {
+            e.preventDefault();
+            var formData = {
+                drone_existant: $('#drone_existant').val(),
+                nom_drone: $('#nom_drone').val(),
+                description: $('#description').val(),
+                latitude: $('#latitude').val(),
+                longitude: $('#longitude').val(),
+                altitude: $('#altitude').val()
+            };
+            fetch('', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                // Recharger la page ou rediriger l'utilisateur comme nécessaire
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
         });
     });
 </script>
 </body>
 </html>
-<?php
-}
-?>

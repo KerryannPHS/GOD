@@ -26,34 +26,25 @@
         if (mysqli_num_rows($result) > 0) {
             // Afficher le tableau avec les données des drones
             echo "<table class='table table-striped table-bordered'>";
-            echo "<tr><th>Nom du drone</th><th>Description</th><th>Date de création</th><th>Latitude</th><th>Longitude</th><th>Altitude</th></tr>";
+            echo "<tr><th>Nom du drone</th><th>Description</th><th>Date de création</th><th>Latitude</th><th>Longitude</th><th>Altitude</th><th>Actions</th></tr>";
 
             while ($drone = mysqli_fetch_assoc($result)) {
                 echo "<tr>";
                 echo "<td>" . htmlspecialchars($drone["nom"]) . "</td>";
                 echo "<td>" . htmlspecialchars($drone["description"]) . "</td>";
                 echo "<td>" . htmlspecialchars($drone["date_creation"]) . "</td>";
-
-                if (!is_null($drone["latitude"])) {
+                
+                // Si les valeurs de latitude, longitude et altitude ne sont pas nulles, les afficher
+                if (!is_null($drone["latitude"]) && !is_null($drone["longitude"]) && !is_null($drone["altitude"])) {
                     echo "<td>" . htmlspecialchars($drone["latitude"]) . "</td>";
-                } else {
-                    echo "<td>-</td>";
-                }
-
-                if (!is_null($drone["longitude"])) {
                     echo "<td>" . htmlspecialchars($drone["longitude"]) . "</td>";
-                } else {
-                    echo "<td>-</td>";
-                }
-
-                if (!is_null($drone["altitude"])) {
                     echo "<td>" . htmlspecialchars($drone["altitude"]) . "</td>";
                 } else {
-                    echo "<td>-</td>";
+                    echo "<td colspan='3'>Pas de données disponibles</td>";
                 }
-  // Ajouter un bouton "Supprimer" avec un lien vers un script PHP de suppression
-  echo "<td><a href='supprimer_drone.php?id=" . $drone["id"] . "' class='btn btn-danger'>Supprimer</a></td>";
-
+                
+                // Ajouter un bouton "Supprimer" avec un lien vers un script PHP de suppression
+                echo "<td><a href='supprimer_drone.php?id=" . $drone["id"] . "' class='btn btn-danger'>Supprimer</a></td>";
 
                 echo "</tr>";
             }
@@ -68,10 +59,38 @@
         ?>
         <br>
         <br>
-        <button type="button" class="btn btn-secondary mt-3 d-block mx-auto" onclick="window.location.href='drone.php';">Retour</button>
+        <!-- Bouton pour exporter en JSON -->
+        <button type="button" id="exportJson" class="btn btn-primary">Exporter en JSON</button>
+        <!-- Bouton de retour -->
+        <button type="button" class="btn btn-secondary" onclick="window.location.href='drone.php';">Retour</button>
     </div>
     <!-- Inclure Bootstrap JS (Popper.js est nécessaire pour les tooltips, popovers et modals) -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz4fnFO9gybB5IXNxFwWQfE7u8Lj+XJHAxKlXiG/6KQ5Jk7qD1wg6OjU6C" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js" integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/" crossorigin="anonymous"></script>
+    <!-- Script JavaScript pour exporter en JSON -->
+    <script>
+        document.getElementById('exportJson').addEventListener('click', function() {
+            fetch('export_json.php')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('File not found');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(new Blob([blob]));
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'drones.json';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                console.error(error);
+            });
+        });
+    </script>
 </body>
 </html>
