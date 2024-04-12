@@ -14,7 +14,7 @@ Le but de ce projet est d'ajouter des positions à des drones et de pouvoir les 
 
 ## Équipe de développement
 
-* [Développeur 1](https://github.com/xhit0ra) - Couleur préférée : <span style="color:red">rouge</span>
+* [xhit0ra - Yohann](https://github.com/xhit0ra) - Couleur préférée : <span style="color:red">rouge</span>
 
 ## Fonctionnalités
 
